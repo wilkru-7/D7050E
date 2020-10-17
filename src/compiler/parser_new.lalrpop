@@ -1,0 +1,157 @@
+use std::str::FromStr;
+
+use crate::ast_new::*;
+
+grammar;
+
+match {
+    // The default whitespace skipping is disabled an `ignore pattern` is specified
+    r"\s*" => { }, 
+    // Skip `// comments`
+    r"//[^\n\r]*" => { }, 
+    // Skip `/* comments */`
+    r"/\*([^\*]*\*+[^\*/])*([^\*]*\*+|[^\*])*\*/" => { },  
+    _
+}
+
+pub Exprs = Comma<Expr>;
+pub Args = Comma<Arg>;
+pub Stmts = SemiComma<Stmt>;
+pub Decls = SemiComma<Decl>;
+// pub Funcs = SemiComma<Function>;
+pub Programs = SemiComma<ProgramPart>;
+
+Comma<T>: Vec<T> = { 
+    <v:(<T> ",")*> <e:T?> => match e {
+        None=> v,
+        Some(e) => {
+            let mut v = v;
+            v.push(e);
+            v
+        }
+    }
+};
+
+SemiComma<T>: Vec<T> = { 
+    <v:(<T> ";")*> <e:T?> => match e {
+        None=> v,
+        Some(e) => {
+            let mut v = v;
+            v.push(e);
+            v
+        }
+    }
+};
+
+pub Program: Box<Program> = {
+    Programs => Box::new(Program::Program(<>)),
+}
+
+pub ProgramPart: Box<Program> = {
+    // Programs => Box::new(Program::Program(<>)),
+    Function => Box::new(Program::Func(<>)),
+    <Decl> => Box::new(Program::Decl(<>)),
+    Expr => Box::new(Program::Expr(<>)),
+}
+
+pub Stmt: Box<Stmt> = {
+    Function => Box::new(Stmt::Func(<>)),
+    "if" <Expr> <BlockExpr> "else"? <BlockExpr?> => Box::new(Stmt::If(<>)),
+    // "else" <BlockExpr> => Box::new(Stmt::Else(<>)),
+    "while" <Expr> <BlockExpr> => Box::new(Stmt::While(<>)),
+    Decl => Box::new(Stmt::Decl(<>)),
+    Expr => Box::new(Stmt::Expr(<>)),
+}
+
+pub Function: Box<Function> = {
+    "fn" <Id> "(" <Args> ")" "->" <Type> <BlockExpr> => Box::new(Function::Fn(<>)),
+    "fn" <Id> "()" "->" "()" <BlockExpr> => Box::new(Function::FnNoArg(<>)),
+}
+
+pub BlockExpr: Box<BlockExpr> = {
+    "{" <Stmts> "}" => Box::new(BlockExpr::BlockExpr(<>)),
+}
+
+pub Decl: Box<Decl> = {
+    "let" <Id> ":" <Type?> "=" <Expr> => Box::new(Decl::Let(<>)),
+    "let mut" <Id> ":" <Type?> "=" <Expr> => Box::new(Decl::LetMut(<>)),
+    <Id> "=" <Expr> => Box::new(Decl::Assign(<>)),
+}
+
+pub Arg: Box<Argument> = {
+    <Id> ":" <Type> => Box::new(Argument::Argument(<>)),
+}
+
+pub Expr: Box<Expr> = {
+    Expr ExprOp Factor => Box::new(Expr::Op(<>)),
+    Expr LogicOp Factor => Box::new(Expr::Op(<>)),
+    <Id> "(" <Exprs> ")" => Box::new(Expr::FunctionCall(<>)),
+    <PrefixOp> "(" <Expr> ")" => Box::new(Expr::NegativeNumOrIdPar(<>)),
+    Factor,
+};
+
+pub Prefix: Op = {
+    "-" => Op::Sub,
+}
+
+pub ExprOp: Op = {
+    "+" => Op::Add,
+    "-" => Op::Sub,
+};
+
+LogicOp: Op = {
+    "&&" => Op::And,
+    "||" => Op::Or,
+    "<" => Op::Less,
+    ">" => Op::Greater,
+    "<=" => Op::LessEq,
+    ">=" => Op::GreaterEq,
+    "!=" => Op::Not,
+    "==" => Op::Eq,
+}
+
+Factor: Box<Expr> = {
+    Factor FactorOp Term => Box::new(Expr::Op(<>)),
+    Term,
+};
+
+FactorOp: Op = {
+    "*" => Op::Mul,
+    "/" => Op::Div,
+};
+
+pub Term: Box<Expr> = {
+    PrefixOp NumOrId => Box::new(Expr::NegativeNumOrId(<>)),
+    NumOrId => Box::new(Expr::NumOrId(<>)),
+    "(" <Expr> ")" => Box::new(Expr::ParExpr(<>)),
+};
+
+PrefixOp: Op = {
+    "-" => Op::Sub,
+    "!" => Op::Not,
+}
+
+pub Type: Type = {
+    "i32" => Type::I32,
+    "bool" => Type::Boolean,
+    "()" => Type::Unknown,
+}
+
+pub NumOrId : NumOrId = {
+    Num => NumOrId::Num(<>),
+    Id => NumOrId::Id(<>),
+    Bool => NumOrId::Bool(<>),
+}
+
+pub Num: i32 = {
+    r"[0-9]+" => i32::from_str(<>).unwrap(),
+};
+
+pub Id: String = {
+    r"([a-z]|[A-Z]|_)([a-z]|[A-Z]|[0-9]|_)*" => String::from_str(<>).unwrap(),
+};
+
+pub Bool: bool = {
+    "true" => bool::from_str(<>).unwrap(),
+    "false" => bool::from_str(<>).unwrap(),
+};
