@@ -46,58 +46,47 @@ fn type_check() -> Result<(), String> {
     // }
     // ").unwrap());
  
-    // let x = ProgramParser::new().parse("
-    // fn a(x2: bool, y2: bool) -> bool {
-    //     x2 || y2
-    // };
-    // fn b(x1: bool, y1: bool) -> i32 {
-    //     let a: bool = a(x1, y1 || false);
-    //     let mut b: i32 = 0;
-    //     if a && y1 {
-    //         let a: bool = true; // shadowing
-    //         if y1 || a {
-    //             b = b + 1;
-    //         };
-    //     } else {
-    //         if !(a && false) {
-    //             b = b - 1;
-    //         }
-    //     };
-    //     b + 3
-    // };
-    // fn c(y: bool) -> bool {
-    //     false
-    // }
-    // ").unwrap();
-
     let x = ProgramParser::new().parse("
-    fn a(x: bool, y: bool) -> bool {
-        if x && y {
-            let a: bool = true;
-            y || a
-        } else {
-            x && false
-        }
-    };
-    fn b(x: bool, y: bool) -> i32 {
-        let a: bool = a(x, y || false);
-        let mut b: i32 = 0;
-        if a && y {
-            let a: bool = true; // shadowing
-            if y || a {
-                b = b + 1;
-            }
-        } else {
-            if !(x && false) {
-                b = b - 1;
-            }
+    fn a(x: i32, y: i32) -> i32 {
+        let mut a: i32 = y;
+        let mut b: i32 = x;
+        while b > 0 {
+            a = a + 1;
+            b = b - 1;
         };
-        b + 3
-    };
+        5 + 3 / 2 * 5;
+    };  
     fn main() -> () {
-        let result: i32 = b(true, true);
+        a(3, 2);
     }
     ").unwrap();
+
+    // let x = ProgramParser::new().parse("
+    // fn test1(x: i32, y: i32) -> i32 {
+    //     if x < y {
+    //         if x > 0 {
+    //             - x + (2 * y)
+    //         };
+    //         x + y
+    //     } else {
+    //         - x - (2 * y)
+    //     }
+    // };
+    // fn test2(x: bool) -> bool {
+    //     let mut a: i32 = 3; 
+    //     let mut b: bool = false;
+    //     let c: i32 = test1(a, 10/2);
+    //     while a >= 0 {
+    //         b = !b;
+    //         a = a - 1;
+    //     };
+    //     b
+    // };
+    // fn main() -> () {
+    //     let start: bool = true;
+    //     test2(start || false);
+    // }
+    // ").unwrap();
     
     assert_eq!(type_check::program_type(&x, &mut var_env, &mut fn_env)?, Type::Unit);
     assert_eq!(interpreter::program(&x, &mut var_env2, &mut fn_env2)?, None);
@@ -112,7 +101,6 @@ fn type_check() -> Result<(), String> {
 // References
 // Borrow checking
 // Global let
-// While no return type
 // Shadowing
 // Let without type
 // Var envs for decl/expr only

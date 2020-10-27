@@ -134,7 +134,7 @@ PrefixOp: Op = {
 pub Type: Type = {
     "i32" => Type::I32,
     "bool" => Type::Boolean,
-    "()" => Type::Unknown,
+    "()" => Type::Unit,
 }
 
 pub NumOrId : NumOrId = {

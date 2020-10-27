@@ -149,23 +149,28 @@ pub fn expr(e: &Expr, vars: &mut VecDeque<HashMap<String, Option<NumOrId>>>, fn_
                 Op::Or => {
                     Ok(NumOrId::Bool(left_bool || right_bool))
                 }
-                
-                Op::Greater | Op::Less | Op:: GreaterEq | Op::LessEq  => {
-                    unimplemented!()
-                    // if left == Type::I32 && right == Type::I32 {
-                    //     Ok(Type::Boolean)
-                    // }
-                    // else {
-                    //     Err(format!("Mismatching types or unsupported operand - left: {}, right: {}, operand: {}", left, right, op))
-                    // }
-                }
 
-                Op::Eq => {
-                    Ok(NumOrId::Bool(left_bool == right_bool))
+                Op::Greater => {
+                    Ok(NumOrId::Bool(left_int > right_int))
                 }
-                Op::Not => {
-                    Ok(NumOrId::Bool(left_bool != right_bool))
+                Op::GreaterEq => {
+                    Ok(NumOrId::Bool(left_int >= right_int))
                 }
+                Op::Less => {
+                    Ok(NumOrId::Bool(left_int < right_int))
+                }
+                Op::LessEq => {
+                    Ok(NumOrId::Bool(left_int <= right_int))
+                }
+                // Op::Eq => {
+                //     Ok(NumOrId::Bool(left_bool == right_bool))
+                //     // Ok(NumOrId::Bool(left_int == right_int))
+                // }
+                // Op::Not => {
+                //     Ok(NumOrId::Bool(left_bool != right_bool))
+                //     // Ok(NumOrId::Bool(left_int == right_int))
+                // }
+                _ => unimplemented!()
             }
         }
         Expr::ParExpr(e) => expr(e, vars, fn_env),
@@ -349,14 +354,27 @@ pub fn stmt_exe(s: &Stmt, var_env: &mut VecDeque<HashMap<String, Option<NumOrId>
             }
         }
         Stmt::While(e, block) => {
-            // let expr = expr_type(e, var_env, fn_env)?;
-            // let block = block_type(block, var_env, fn_env)?;
-            // if expr == Type::Boolean {
-            //     Ok(block)
-            // } else {
-            //     Err(format!("Invalid expression in while - expected: {}, expression was: {}", Type::Boolean, expr))
-            // }
-            unimplemented!()
+            let start_expr = expr(e, var_env, fn_env)?;
+            let mut expr_bool = false;
+            match start_expr {
+                NumOrId::Id(_) => {}
+                NumOrId::Num(_) => {}
+                NumOrId::Bool(b) => {
+                    expr_bool = b;
+                }
+            }
+            while expr_bool {
+                block_exe(block, var_env, fn_env)?;
+                let temp = expr(e, var_env, fn_env)?;
+                match temp {
+                    NumOrId::Id(_) => {}
+                    NumOrId::Num(_) => {}
+                    NumOrId::Bool(b) => {
+                    expr_bool = b;
+                    }
+                }
+            }
+            Ok(None)
         }
         Stmt::Func(f) => func(f, var_env, fn_env),
         Stmt::Decl(d) => decl(d, var_env, fn_env),
