@@ -61,21 +61,16 @@ pub fn expr_type(e: &Expr, var_env: &mut VarEnv, fn_env: &mut FnEnv) -> Result<T
     match e {
         Expr::NumOrId(n) => id_type(n, var_env),
         Expr::Op(l, op, r) => {
-            
             let left = expr_type(l, var_env, fn_env)?;
             let right = expr_type(r, var_env, fn_env)?;
-            
             match op {
-
                 Op::Add | Op::Sub | Op::Div | Op::Mul => {
-                    
                     if left == Type::I32 && right == Type::I32 {
                         Ok(Type::I32)
                     } else {
                         Err(format!("Mismatching types or unsupported operand - left: {}, right: {}, operand: {}", left, right, op))
                     }
                 }
-
                 Op::And | Op::Or => {
                     if left == Type::Boolean && right == Type::Boolean {
                         Ok(Type::Boolean)
@@ -84,7 +79,6 @@ pub fn expr_type(e: &Expr, var_env: &mut VarEnv, fn_env: &mut FnEnv) -> Result<T
                         Err(format!("Mismatching types or unsupported operand - left: {}, right: {}, operand: {}", left, right, op))
                     }
                 }
-                
                 Op::Greater | Op::Less | Op:: GreaterEq | Op::LessEq  => {
                     if left == Type::I32 && right == Type::I32 {
                         Ok(Type::Boolean)
@@ -93,7 +87,6 @@ pub fn expr_type(e: &Expr, var_env: &mut VarEnv, fn_env: &mut FnEnv) -> Result<T
                         Err(format!("Mismatching types or unsupported operand - left: {}, right: {}, operand: {}", left, right, op))
                     }
                 }
-
                 Op::Eq | Op::Not => {
                     if left == Type::I32 && right == Type::I32 {
                         Ok(Type::Boolean)
@@ -307,14 +300,12 @@ pub fn decl_type(d: &Decl, var_env: &mut VarEnv, fn_env: &mut FnEnv) -> Result<T
             let right = expr_type(e, var_env, fn_env)?;
             let mut var: Type = Type::Unknown;
             let mut no_var: bool = false;
-            // let mut mutable: bool = false;
             for map in var_env.iter() {
                 if map.contains_key(id) {
                     let op_var = map.get(id);
                     match op_var {
                         Some(t) => {
                             var = t.0.clone();
-                            // mutable = t.1;
                         }
                         None => {}
                     }
@@ -324,11 +315,7 @@ pub fn decl_type(d: &Decl, var_env: &mut VarEnv, fn_env: &mut FnEnv) -> Result<T
                 }
             }
             if var == right {
-                // if mutable == true {
-                    Ok(var)
-                // } else {
-                //     Err(format!("{} is not a mutable variable", id))
-                // }
+                Ok(var)
             } else if no_var == true {
                 Err(format!("Illegal assign - variable {} do not exist", id))
             } else {
@@ -380,17 +367,14 @@ pub fn func_type(f: &Function, var_env: &mut VarEnv, fn_env: &mut FnEnv) -> Resu
         Function::Fn(id, args, t, block) => {
             push_front(var_env);
             fn_env.insert(id.to_string(), t.clone());
-           
             let mut i: i32 = 1;
             for arg in args {
                 arg_insert(arg, var_env);
                 arg_insert2(id, arg, fn_env, &i.to_string());
                 i = i + 1;
             }
-    
             let result = block_type(block, var_env, fn_env)?;
             pop_front(var_env);
-
             if *t == result {
                 Ok(result)
             } else {
@@ -423,16 +407,6 @@ pub fn program_type(p: &Program, var_env: &mut VarEnv, fn_env: &mut FnEnv) -> Re
         }
     }
 }
-
-// fn push_front(env: &mut VecDeque<HashMap<String, Type>>) {
-//     let var: HashMap<String, Type> = HashMap::new();
-//     env.push_front(var);
-// }
-
-// fn pop_front(env: &mut VecDeque<HashMap<String, Type>>) {
-//     env.pop_front();
-// 
-// }
 
 fn push_front(env: &mut VarEnv) {
     let var: IdType = HashMap::new();

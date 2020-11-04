@@ -18,7 +18,6 @@ pub Exprs = Comma<Expr>;
 pub Args = Comma<Arg>;
 pub Stmts = SemiComma<Stmt>;
 pub Decls = SemiComma<Decl>;
-// pub Funcs = SemiComma<Function>;
 pub Programs = SemiComma<ProgramPart>;
 
 Comma<T>: Vec<T> = { 
@@ -48,7 +47,6 @@ pub Program: Box<Program> = {
 }
 
 pub ProgramPart: Box<Program> = {
-    // Programs => Box::new(Program::Program(<>)),
     Function => Box::new(Program::Func(<>)),
     Decl => Box::new(Program::Decl(<>)),
     Expr => Box::new(Program::Expr(<>)),
@@ -57,7 +55,6 @@ pub ProgramPart: Box<Program> = {
 pub Stmt: Box<Stmt> = {
     Function => Box::new(Stmt::Func(<>)),
     "if" <Expr> <BlockExpr> "else"? <BlockExpr?> => Box::new(Stmt::If(<>)),
-    // "else" <BlockExpr> => Box::new(Stmt::Else(<>)),
     "while" <Expr> <BlockExpr> => Box::new(Stmt::While(<>)),
     Decl => Box::new(Stmt::Decl(<>)),
     Expr => Box::new(Stmt::Expr(<>)),

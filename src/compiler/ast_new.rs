@@ -1,12 +1,11 @@
 use std::fmt;
 use std::fmt::*;
 
-
 #[derive(Debug, PartialEq)]
 pub enum Program {
     Func(Box<Function>),
     Decl(Box<Decl>),
-    Expr(Box<Expr>), //??
+    Expr(Box<Expr>), 
     Program(Vec<Box<Program>>),
 }
 
@@ -21,7 +20,6 @@ pub enum Stmt {
     If(Box<Expr>, Box<BlockExpr>, Option<Box<BlockExpr>>),
     While(Box<Expr>, Box<BlockExpr>),
     Func(Box<Function>),
-    // Else(Box<BlockExpr>), // Change to optional to if?
     Decl(Box<Decl>),
     Expr(Box<Expr>),
 }
@@ -62,7 +60,6 @@ pub enum Type {
     Unit,
     Ref(Box<Type>),
     RefMut(Box<Type>),
-    //Mut<Box<Type>>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
