@@ -7,27 +7,54 @@ pub fn id_type(n: &NumOrId, var_env: &mut VarEnv) -> Result<Type, Error> {
     match n {
         NumOrId::Num(_) => Ok(Type::I32),
         NumOrId::Bool(_) => Ok(Type::Boolean),
-        NumOrId::Id(s) => {
+        NumOrId::Id(s) => help(s, var_env),
+        NumOrId::Ref(s) => help(s, var_env),
+        NumOrId::RefMut(s) => {
             let mut var: Type = Type::Unknown;
+            let mut mutable: bool = false;
             for map in var_env.iter() {
                 if map.contains_key(s) {
                     let op_var = map.get(s);
                     match op_var {
                         Some(t) => {
-                            var = t.0;
+                            var = t.0.clone();
+                            mutable = t.1;
                         }
                         None => {}
                     }
                     break;
                 }
             }
-            if var != Type::Unknown {
+            if var != Type::Unknown && mutable {
                 Ok(var)
             } else {
-                Err(format!("Variable {} not found in this scope", s))
+                Err(format!("Variable {} not found in this scope or reference not mutable", s))
+            }                
+        }
+        NumOrId::Deref(s) => help(s, var_env),
+        _ => unimplemented!()
+    }
+}
+
+fn help(s: &String, var_env: &mut VarEnv) -> Result<Type, Error> {
+    let mut var: Type = Type::Unknown;
+    for map in var_env.iter() {
+        if map.contains_key(s) {
+            let op_var = map.get(s);
+            match op_var {
+                Some(t) => {
+                    var = t.0.clone();
+                }
+                None => {}
             }
+            break;
         }
     }
+    if var != Type::Unknown {
+        Ok(var)
+    } else {
+        Err(format!("Variable {} not found in this scope", s))
+    }    
 }
 
 pub fn expr_type(e: &Expr, var_env: &mut VarEnv, fn_env: &mut FnEnv) -> Result<Type, Error> {
@@ -126,7 +153,7 @@ pub fn expr_type(e: &Expr, var_env: &mut VarEnv, fn_env: &mut FnEnv) -> Result<T
             if fn_env.contains_key(id) {
                 match fn_env.get(id) {
                     Some(t) => {
-                        fn_type = *t;
+                        fn_type = t.clone();
                     }
                     None => ()
                 }
@@ -138,7 +165,7 @@ pub fn expr_type(e: &Expr, var_env: &mut VarEnv, fn_env: &mut FnEnv) -> Result<T
                     if fn_env.contains_key(&s) {
                         match fn_env.get(&s) {
                             Some(t) => {
-                                return_type = *t;
+                                return_type = t.clone();
                             }
                             None => {}
                         }
@@ -178,6 +205,29 @@ pub fn block_type(block: &BlockExpr, var_env: &mut VarEnv, fn_env: &mut FnEnv) -
             let mut last = Type::Unknown;
             for stmt in stmts {
                 last = stmt_type(stmt, var_env, fn_env)?;
+                let statement = &**stmt;
+                match statement {
+                    Stmt::If(_, _, e) => {
+                        match e {
+                            Some(e) => {
+                                last = block_type(e, var_env, fn_env)?;
+                            }
+                            None => {}
+                        } 
+                    }
+                    Stmt::While(_, _) => {
+                        last = Type::Unit;
+                    }
+                    Stmt::Func(_) => {
+                        last = Type::Unit;
+                    }
+                    Stmt::Decl(_) => {
+                        last = Type::Unit;
+                    }
+                    Stmt::Expr(e) => {
+                        last = expr_type(e, var_env, fn_env)?;
+                    }
+                }
             }
             pop_front(var_env);
             Ok(last)
@@ -231,7 +281,7 @@ pub fn decl_type(d: &Decl, var_env: &mut VarEnv, fn_env: &mut FnEnv) -> Result<T
                     let op_var = map.get(id);
                     match op_var {
                         Some(t) => {
-                            var = t.0;
+                            var = t.0.clone();
                             mutable = t.1;
                         }
                         None => {}
@@ -252,6 +302,38 @@ pub fn decl_type(d: &Decl, var_env: &mut VarEnv, fn_env: &mut FnEnv) -> Result<T
             } else {
                 Err(format!("Illegal assing -  variable has type {}, new type: {}", var, right))
             }        
+        }
+        Decl::AssignDeref(id, e) => {
+            let right = expr_type(e, var_env, fn_env)?;
+            let mut var: Type = Type::Unknown;
+            let mut no_var: bool = false;
+            // let mut mutable: bool = false;
+            for map in var_env.iter() {
+                if map.contains_key(id) {
+                    let op_var = map.get(id);
+                    match op_var {
+                        Some(t) => {
+                            var = t.0.clone();
+                            // mutable = t.1;
+                        }
+                        None => {}
+                    }
+                    break;
+                } else {
+                    no_var = true;
+                }
+            }
+            if var == right {
+                // if mutable == true {
+                    Ok(var)
+                // } else {
+                //     Err(format!("{} is not a mutable variable", id))
+                // }
+            } else if no_var == true {
+                Err(format!("Illegal assign - variable {} do not exist", id))
+            } else {
+                Err(format!("Illegal assing -  variable has type {}, new type: {}", var, right))
+            }             
         }
     }
 }
@@ -297,7 +379,7 @@ pub fn func_type(f: &Function, var_env: &mut VarEnv, fn_env: &mut FnEnv) -> Resu
     match f {
         Function::Fn(id, args, t, block) => {
             push_front(var_env);
-            fn_env.insert(id.to_string(), *t);
+            fn_env.insert(id.to_string(), t.clone());
            
             let mut i: i32 = 1;
             for arg in args {
@@ -318,9 +400,10 @@ pub fn func_type(f: &Function, var_env: &mut VarEnv, fn_env: &mut FnEnv) -> Resu
         Function::FnNoArg(id, block) => {
             fn_env.insert(id.to_string(), Type::Unit);
             let result = block_type(block, var_env, fn_env)?;
+            let result2 = result.clone();
             fn_env.remove(id);
             fn_env.insert(id.to_string(), result);
-            Ok(result)
+            Ok(result2)
         }
     }
 }

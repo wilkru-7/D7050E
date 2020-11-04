@@ -50,7 +50,7 @@ pub Program: Box<Program> = {
 pub ProgramPart: Box<Program> = {
     // Programs => Box::new(Program::Program(<>)),
     Function => Box::new(Program::Func(<>)),
-    <Decl> => Box::new(Program::Decl(<>)),
+    Decl => Box::new(Program::Decl(<>)),
     Expr => Box::new(Program::Expr(<>)),
 }
 
@@ -76,6 +76,7 @@ pub Decl: Box<Decl> = {
     "let" <Id> ":" <Type?> "=" <Expr> => Box::new(Decl::Let(<>)),
     "let mut" <Id> ":" <Type?> "=" <Expr> => Box::new(Decl::LetMut(<>)),
     <Id> "=" <Expr> => Box::new(Decl::Assign(<>)),
+    "*" <Id> "=" <Expr> => Box::new(Decl::AssignDeref(<>)),
 }
 
 pub Arg: Box<Argument> = {
@@ -132,6 +133,12 @@ PrefixOp: Op = {
 }
 
 pub Type: Type = {
+    "&" <Types>,
+    "&" "mut" <Types>,
+    <Types>,
+}
+
+Types: Type = {
     "i32" => Type::I32,
     "bool" => Type::Boolean,
     "()" => Type::Unit,
@@ -141,6 +148,9 @@ pub NumOrId : NumOrId = {
     Num => NumOrId::Num(<>),
     Id => NumOrId::Id(<>),
     Bool => NumOrId::Bool(<>),
+    "&" <Id> => NumOrId::Ref(<>),
+    "&" "mut" <Id> => NumOrId::RefMut(<>),
+    "*" <Id> => NumOrId::Deref(<>),
 }
 
 pub Num: i32 = {

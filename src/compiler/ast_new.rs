@@ -36,6 +36,7 @@ pub enum Decl {
     Let(String, Option<Type>, Box<Expr>),
     LetMut(String, Option<Type>, Box<Expr>),
     Assign(String, Box<Expr>),
+    AssignDeref(String, Box<Expr>),
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -53,12 +54,14 @@ pub enum Expr {
     ParExpr(Box<Expr>),
 }
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Type {
     I32,
     Boolean,
     Unknown,
     Unit,
+    Ref(Box<Type>),
+    RefMut(Box<Type>),
     //Mut<Box<Type>>,
 }
 
@@ -67,6 +70,10 @@ pub enum NumOrId {
     Id(String),
     Num(i32),
     Bool(bool),
+    Ref(String),
+    RefMut(String),
+    Deref(String),
+    Unit,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -92,6 +99,8 @@ impl fmt::Display for Type {
             Type::Boolean => write!(f, "{}", "bool")?,
             Type::Unknown => write!(f, "{}", "Unknown type")?,
             Type::Unit => write!(f, "{}", "Unit")?,
+            Type::Ref(t) => write!(f, "&{}", t)?,
+            Type::RefMut(t) => write!(f, "&mut {}", t)?,
         };
         Ok(())
     }

@@ -18,13 +18,16 @@ pub fn id(n: &NumOrId, var_env: &mut VecDeque<HashMap<String, Option<NumOrId>>>)
                             match t {
                                 Some(n) => {
                                     match n {
-                                        NumOrId::Id(_) => {}
+                                        NumOrId::Id(_) => {
+                                            continue;
+                                        }
                                         NumOrId::Num(n) => {
                                             int = Some(*n);
                                         }
                                         NumOrId::Bool(n) => {
                                             boolean = Some(*n);
                                         }
+                                        _ => unimplemented!()
                                     }
                                 }
                                 None => {}
@@ -40,9 +43,74 @@ pub fn id(n: &NumOrId, var_env: &mut VecDeque<HashMap<String, Option<NumOrId>>>)
             } else if let Some(value) = boolean {
                 Ok(NumOrId::Bool(value))
             } else {
-                Err(format!("Variable {} not found in this scope", s))
+                Err(format!("Variable1 {} not found in this scope", s))
             }
         }
+        NumOrId::Ref(s) => {
+            let mut reference: Option<NumOrId> = None;
+            for map in var_env.iter() {
+                if map.contains_key(s) {
+                    reference = Some(NumOrId::Id(s.to_string()));
+                }
+            }
+            if let Some(value) = reference {
+                Ok(value)
+            } else {
+                Err(format!("Variable2 {} not found in this scope", s))
+            }
+        }
+        NumOrId::RefMut(s) => {
+            let mut reference: Option<NumOrId> = None;
+            for map in var_env.iter() {
+                if map.contains_key(s) {
+                    reference = Some(NumOrId::Id(s.to_string()));
+                }
+            }
+            if let Some(value) = reference {
+                Ok(value)
+            } else {
+                Err(format!("Variable3 {} not found in this scope", s))
+            }
+        }
+        NumOrId::Deref(s) => {
+            // println!("{:?}", var_env);
+            // let mut int: Option<i32> = None;
+            // let mut boolean: Option<bool> = None;
+            let mut result: Option<NumOrId> = None;
+            for map in var_env.iter() {
+                if map.contains_key(s) {
+                    let op_var = map.get(s);
+                    match op_var {
+                        Some(t) => {
+                            match t {
+                                Some(n) => {
+                                    match n {
+                                        NumOrId::Id(s) => {
+                                            result = Some(id(&NumOrId::Id(s.clone()), var_env)?);
+                                            // result = Some(NumOrId::Id(s.clone()));
+                                        }
+                                        _ => unimplemented!()
+                                    }
+                                }
+                                None => {}
+                            }
+                        }
+                        None => {}
+                    }
+                    break;
+                }
+            }
+            // if let Some(value) = int {
+            //     Ok(NumOrId::Num(value))
+            // } else if let Some(value) = boolean {
+            //     Ok(NumOrId::Bool(value))
+            if let Some(value) = result {
+                Ok(value)
+            } else {
+                Err(format!("Reference for {} not found in this scope", s))
+            }
+        }
+        _ => unimplemented!()
     }
 }
 
@@ -50,10 +118,8 @@ pub fn expr(e: &Expr, vars: &mut VecDeque<HashMap<String, Option<NumOrId>>>, fn_
     match e {
         Expr::NumOrId(n) => id(n, vars),
         Expr::Op(l, op, r) => {
-            
             let left = expr(l, vars, fn_env)?;
             let right = expr(r, vars, fn_env)?;
-
             let mut left_int: i32 = 0;
             let mut right_int: i32 = 0;
             let mut left_bool: bool = false;
@@ -76,6 +142,7 @@ pub fn expr(e: &Expr, vars: &mut VecDeque<HashMap<String, Option<NumOrId>>>, fn_
                                             NumOrId::Bool(b) => {
                                                 left_bool = *b;
                                             }
+                                            _ => unimplemented!()
                                         }
                                     }
                                     None => {}
@@ -93,6 +160,7 @@ pub fn expr(e: &Expr, vars: &mut VecDeque<HashMap<String, Option<NumOrId>>>, fn_
                 NumOrId::Bool(b) => {
                     left_bool = b;
                 }
+                _ => unimplemented!()
             }
             match right {
                 NumOrId::Id(s) => {
@@ -111,6 +179,7 @@ pub fn expr(e: &Expr, vars: &mut VecDeque<HashMap<String, Option<NumOrId>>>, fn_
                                             NumOrId::Bool(b) => {
                                                 right_bool = *b;
                                             }
+                                            _ => unimplemented!()
                                         }
                                     }
                                     None => {}
@@ -128,6 +197,7 @@ pub fn expr(e: &Expr, vars: &mut VecDeque<HashMap<String, Option<NumOrId>>>, fn_
                 NumOrId::Bool(b) => {
                     right_bool = b;
                 }
+                _ => unimplemented!()
             }
             
             match op {
@@ -186,6 +256,7 @@ pub fn expr(e: &Expr, vars: &mut VecDeque<HashMap<String, Option<NumOrId>>>, fn_
                             left_int = n;
                         }
                         NumOrId::Bool(_) => {}
+                        _ => unimplemented!()
                     }
                     Ok(NumOrId::Num(-left_int))
                 }
@@ -199,6 +270,7 @@ pub fn expr(e: &Expr, vars: &mut VecDeque<HashMap<String, Option<NumOrId>>>, fn_
                         NumOrId::Bool(b) => {
                             left_bool = b;
                         }
+                        _ => unimplemented!()
                     }
                     Ok(NumOrId::Bool(!left_bool))
                 }
@@ -217,6 +289,7 @@ pub fn expr(e: &Expr, vars: &mut VecDeque<HashMap<String, Option<NumOrId>>>, fn_
                             left_int = n;
                         }
                         NumOrId::Bool(_) => {}
+                        _ => unimplemented!()
                     }
                     Ok(NumOrId::Num(-left_int))
                 }
@@ -230,6 +303,7 @@ pub fn expr(e: &Expr, vars: &mut VecDeque<HashMap<String, Option<NumOrId>>>, fn_
                         NumOrId::Bool(b) => {
                             left_bool = b;
                         }
+                        _ => unimplemented!()
                     }
                     Ok(NumOrId::Bool(!left_bool))
                 }
@@ -279,7 +353,8 @@ pub fn expr(e: &Expr, vars: &mut VecDeque<HashMap<String, Option<NumOrId>>>, fn_
                         Ok(n)
                     }
                     None => {
-                        Err(format!("No value returned"))
+                        Ok(NumOrId::Unit)
+                        // Err(format!("No value returned"))
                     }
                 }               
             } else {
@@ -292,13 +367,35 @@ pub fn expr(e: &Expr, vars: &mut VecDeque<HashMap<String, Option<NumOrId>>>, fn_
 pub fn block_exe(block: &BlockExpr, var_env: &mut VecDeque<HashMap<String, Option<NumOrId>>>, fn_env: &mut HashMap<String, Function>) -> Result<Option<NumOrId>, Error> {
     match block {
         BlockExpr::BlockExpr(stmts) => {
+            // println!("{:?} in block", var_env);
             push_front(var_env);
             let mut last = None;
             for stmt in stmts {
                 last = stmt_exe(stmt, var_env, fn_env)?;
+                let statement = &**stmt;
+                match statement {
+                    Stmt::If(_, _, _) => {
+                        // last = None;
+                    }
+                    Stmt::While(_, _) => {
+                        last = None;
+                    }
+                    Stmt::Func(_) => {
+                        last = None;
+                    }
+                    Stmt::Decl(_) => {
+                        last = None;
+                    }
+                    Stmt::Expr(_e) => {
+                        // let temp = expr(e, var_env, fn_env)?;
+                        // last = Some(temp);
+                        // last = None;
+                    }
+                }
             }
+            // println!("{:?} in block", var_env);
             pop_front(var_env);
-            println!("{:?}", last);
+            // println!("{:?}", last);
             Ok(last)
         }
     }
@@ -322,7 +419,7 @@ pub fn decl(d: &Decl, vars: &mut VecDeque<HashMap<String, Option<NumOrId>>>, fn_
         }
         Decl::Assign(id, e) => {
             let right: NumOrId = expr(e, vars, fn_env)?;
-            println!("{:?}", vars);
+            // println!("{:?}", vars);
             for var in vars {
                 if var.contains_key(id){
                     var.remove(id);
@@ -331,6 +428,45 @@ pub fn decl(d: &Decl, vars: &mut VecDeque<HashMap<String, Option<NumOrId>>>, fn_
                 }
             }
             Ok(None)    
+        }
+        Decl::AssignDeref(id, e) => {
+            let right: NumOrId = expr(e, vars, fn_env)?;
+            // println!("{:?} for {}", vars, id);
+            let mut string: &String = &"".to_string();
+            for var in vars {
+                if string == &"".to_string() {
+                    // let temp: HashMap<String, Option<NumOrId>> = var.clone();
+                    if var.contains_key(id){
+                        let op_var = var.get(id);
+                        match op_var {
+                            Some(t) => {
+                                match t {
+                                    Some(n) => {
+                                        match n {
+                                            NumOrId::Id(s) => {
+                                                string = s;
+                                            }
+                                            _ => unimplemented!()
+                                        }
+                                    }
+                                    None => {}
+                                }
+                            }
+                            None => {}
+                        }
+                        // var.remove(string);
+                        // var.insert(string.clone(), Some(right)); 
+                    }
+                } 
+                else {
+                    if var.contains_key(string){
+                        var.remove(string);
+                        var.insert(string.clone(), Some(right));
+                        break;
+                    }
+                }
+            }
+            Ok(None) 
         }
     }
 }
@@ -362,6 +498,7 @@ pub fn stmt_exe(s: &Stmt, var_env: &mut VecDeque<HashMap<String, Option<NumOrId>
                 NumOrId::Bool(b) => {
                     expr_bool = b;
                 }
+                _ => unimplemented!()
             }
             while expr_bool {
                 block_exe(block, var_env, fn_env)?;
@@ -370,8 +507,9 @@ pub fn stmt_exe(s: &Stmt, var_env: &mut VecDeque<HashMap<String, Option<NumOrId>
                     NumOrId::Id(_) => {}
                     NumOrId::Num(_) => {}
                     NumOrId::Bool(b) => {
-                    expr_bool = b;
+                        expr_bool = b;
                     }
+                    _ => unimplemented!()
                 }
             }
             Ok(None)
@@ -387,15 +525,15 @@ pub fn stmt_exe(s: &Stmt, var_env: &mut VecDeque<HashMap<String, Option<NumOrId>
 
 pub fn func(f: &Function, var_env: &mut VecDeque<HashMap<String, Option<NumOrId>>>, fn_env: &mut HashMap<String, Function>) -> Result<Option<NumOrId>, Error> {
     match f {
-        Function::Fn(id, _args, _t, block) => {
+        Function::Fn(_, _args, _t, block) => {
             let result = block_exe(block, var_env, fn_env)?;
-            fn_env.remove(id);
+            // fn_env.remove(id);
             Ok(result)
         }
-        Function::FnNoArg(id, block) => {
+        Function::FnNoArg(_, block) => {
             // fn_env.insert(id.to_string(), None);
             let result = block_exe(block, var_env, fn_env)?;
-            fn_env.remove(id);
+            // fn_env.remove(id);
             Ok(result)
         }
     }
@@ -411,7 +549,6 @@ pub fn program(p: &Program, var_env: &mut VecDeque<HashMap<String, Option<NumOrI
         },
         Program::Program(vec) => {
             push_front(var_env);
-            
             let mut main: bool = false;
             for p in vec {
                 match &**p {
@@ -421,18 +558,16 @@ pub fn program(p: &Program, var_env: &mut VecDeque<HashMap<String, Option<NumOrI
                             Function::Fn(s, _, _, _) => {
                                 let s2 = s.clone();
                                 fn_env.insert(s2, *f2);
-                                
                                 if s == "main" {
-                                    program(p, var_env, fn_env)?;
+                                    func(f, var_env, fn_env)?;
                                     main = true;
-                                }
-                                
+                                }    
                             }
                             Function::FnNoArg(s, _) => {
                                 let s2 = s.clone();
                                 fn_env.insert(s2, *f2);
                                 if s == "main" {
-                                    program(p, var_env, fn_env)?;
+                                    func(f, var_env, fn_env)?;
                                     main = true;
                                 }
                             }
@@ -443,6 +578,7 @@ pub fn program(p: &Program, var_env: &mut VecDeque<HashMap<String, Option<NumOrI
                     Program::Program(_) => {}
                 }
             }
+            // println!("{:?}", var_env);
             pop_front(var_env);
             if main == true {
                 Ok(None)
